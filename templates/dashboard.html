@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Kredensial</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f8f9fa; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #343a40; color: white; }
+        .btn-eye { cursor: pointer; background: #e9ecef; border: 1px solid #ced4da; padding: 5px 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Dashboard Kredensial Sistem</h2>
+        <div>
+            Pengguna: <b>{{ user }}</b> ({{ role }}) | 
+            <a href="/logout">Keluar</a>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nama Sistem</th>
+                <th>Username</th>
+                <th>Password (Terenkripsi)</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+            <tr>
+                <td>{{ row[1] }}</td>
+                <td>{{ row[2] }}</td>
+                <td id="pass-field-{{ row[0] }}">••••••••••••</td>
+                <td>
+                    <button class="btn-eye" onclick="toggleDecrypt('{{ row[0] }}')">👁️ Lihat Password</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        function toggleDecrypt(id) {
+            const field = document.getElementById('pass-field-' + id);
+            
+            fetch('/decrypt/' + id, { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.password) {
+                    field.innerText = data.password;
+                    field.style.color = "green";
+                    field.style.fontWeight = "bold";
+                }
+            });
+        }
+    </script>
+</body>
+</html>
