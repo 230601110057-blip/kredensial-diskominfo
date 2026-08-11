@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 import sqlite3
 import math
 
@@ -6,9 +6,6 @@ app = Flask(__name__)
 app.secret_key = 'kunci_rahasia_diskominfo_batu'
 
 # --- 1. METODE MATEMATIKA: AFFINE CIPHER ---
-# Rumus Enkripsi: E(x) = (a * x + b) mod m
-# Rumus Dekripsi: D(y) = a_inv * (y - b) mod m
-
 a = 5
 b = 8
 m = 256  # Menggunakan jangkauan ASCII (0-255)
@@ -115,6 +112,30 @@ def dashboard():
     conn.close()
     
     return render_template('dashboard.html', data=data_kredensial, user=session['username'], role=session['role'])
+
+# ROUTE UNTUK TAMBAH USER BARU (Dipindahkan ke posisi yang benar)
+@app.route('/tambah_user', methods=['POST'])
+def tambah_user():
+    if not session.get('loggedin'):
+        return redirect(url_for('login'))
+
+    username_baru = request.form.get('username')
+    password_baru = request.form.get('password')
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    try:
+        # Menambahkan user baru dengan default role 'Staf/PKL' dan status 1 (Aktif)
+        cursor.execute("INSERT INTO users (username, password, role, status) VALUES (?, ?, 'Staf/PKL', 1)", 
+                       (username_baru, password_baru))
+        conn.commit()
+        flash("User baru berhasil ditambahkan!")
+    except sqlite3.IntegrityError:
+        flash("Username sudah ada!")
+    finally:
+        conn.close()
+
+    return redirect(url_for('dashboard'))
 
 # API untuk pemicu Dekripsi Matematika saat ikon mata diklik
 @app.route('/decrypt/<int:id>', methods=['POST'])
