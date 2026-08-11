@@ -10,6 +10,15 @@
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background: #343a40; color: white; }
         .btn-eye { cursor: pointer; background: #e9ecef; border: 1px solid #ced4da; padding: 5px 10px; border-radius: 4px; }
+        
+        /* CSS TAMBAHAN UNTUK FORM TAMBAH USER */
+        .card-add-user { background: white; padding: 20px; margin-top: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card-add-user h3 { margin-top: 0; color: #343a40; font-size: 16px; }
+        .form-inline { display: flex; gap: 10px; align-items: center; }
+        .form-inline input { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; flex: 1; }
+        .btn-submit { background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-submit:hover { background: #218838; }
+        .alert { padding: 10px 15px; margin-top: 15px; border-radius: 4px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     </style>
 </head>
 <body>
@@ -20,6 +29,26 @@
             <a href="/logout">Keluar</a>
         </div>
     </div>
+
+    <!-- NOTIFIKASI SUKSES / ERROR (JIKA ADA) -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- ================= BAGIAN BARU: FORM TAMBAH USER ================= -->
+    <div class="card-add-user">
+        <h3>➕ Tambah Pengguna / Akses User Baru</h3>
+        <form action="/tambah_user" method="POST" class="form-inline">
+            <input type="text" name="username" placeholder="Masukkan Username Baru" required>
+            <input type="password" name="password" placeholder="Masukkan Password Baru" required>
+            <button type="submit" class="btn-submit">Simpan User</button>
+        </form>
+    </div>
+    <!-- =================================================================== -->
 
     <table>
         <thead>
