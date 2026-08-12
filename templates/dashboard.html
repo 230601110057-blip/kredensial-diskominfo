@@ -6,19 +6,21 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; background: #f8f9fa; }
         .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        table { width: 100%; margin-top: 20px; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        table { width: 100%; margin-top: 15px; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background: #343a40; color: white; }
         .btn-eye { cursor: pointer; background: #e9ecef; border: 1px solid #ced4da; padding: 5px 10px; border-radius: 4px; }
         
-        /* CSS TAMBAHAN UNTUK FORM TAMBAH USER */
         .card-add-user { background: white; padding: 20px; margin-top: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .card-add-user h3 { margin-top: 0; color: #343a40; font-size: 16px; }
         .form-inline { display: flex; gap: 10px; align-items: center; }
         .form-inline input { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; flex: 1; }
         .btn-submit { background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn-submit:hover { background: #218838; }
+        .btn-delete { background: #dc3545; color: white; text-decoration: none; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .btn-delete:hover { background: #bd2130; }
         .alert { padding: 10px 15px; margin-top: 15px; border-radius: 4px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .section-title { margin-top: 30px; margin-bottom: 5px; color: #343a40; }
     </style>
 </head>
 <body>
@@ -30,7 +32,6 @@
         </div>
     </div>
 
-    <!-- NOTIFIKASI SUKSES / ERROR (JIKA ADA) -->
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         {% for message in messages %}
@@ -39,7 +40,8 @@
       {% endif %}
     {% endwith %}
 
-    <!-- ================= BAGIAN BARU: FORM TAMBAH USER ================= -->
+    <!-- HANYA ADMIN YANG BISA LIHAT & TAMBAH USER -->
+    {% if role == 'Admin' %}
     <div class="card-add-user">
         <h3>➕ Tambah Pengguna / Akses User Baru</h3>
         <form action="/tambah_user" method="POST" class="form-inline">
@@ -48,8 +50,40 @@
             <button type="submit" class="btn-submit">Simpan User</button>
         </form>
     </div>
-    <!-- =================================================================== -->
 
+    <h3 class="section-title">👥 Daftar Pengguna Terdaftar (Khusus Admin)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>{{ u[0] }}</td>
+                <td><b>{{ u[1] }}</b></td>
+                <td>{{ u[2] }}</td>
+                <td><span style="color: green; font-weight: bold;">Aktif</span></td>
+                <td>
+                    {% if u[1] != 'admin' %}
+                    <a href="/hapus_user/{{ u[0] }}" class="btn-delete" onclick="return confirm('Yakin ingin menghapus akun {{ u[1] }}?')">🗑️ Hapus</a>
+                    {% else %}
+                    <span style="color: gray; font-size: 12px;">(Akun Utama)</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- TABEL KREDENSIAL SISTEM (Dapat dilihat oleh Admin & Staf/PKL) -->
+    <h3 class="section-title">🔑 Kredensial Akses Sistem</h3>
     <table>
         <thead>
             <tr>
