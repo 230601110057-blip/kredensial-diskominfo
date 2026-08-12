@@ -2,124 +2,210 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Kredensial</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Kredensial Kominfo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background: #f8f9fa; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        table { width: 100%; margin-top: 15px; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background: #343a40; color: white; }
-        .btn-eye { cursor: pointer; background: #e9ecef; border: 1px solid #ced4da; padding: 5px 10px; border-radius: 4px; }
-        
-        .card-add-user { background: white; padding: 20px; margin-top: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .card-add-user h3 { margin-top: 0; color: #343a40; font-size: 16px; }
-        .form-inline { display: flex; gap: 10px; align-items: center; }
-        .form-inline input { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; flex: 1; }
-        .btn-submit { background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-submit:hover { background: #218838; }
-        .btn-delete { background: #dc3545; color: white; text-decoration: none; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-        .btn-delete:hover { background: #bd2130; }
-        .alert { padding: 10px 15px; margin-top: 15px; border-radius: 4px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .section-title { margin-top: 30px; margin-bottom: 5px; color: #343a40; }
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .navbar { background-color: #1e293b; }
+        .card { border: none; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .nav-tabs .nav-link { color: #64748b; font-weight: 600; border: none; padding: 12px 20px; }
+        .nav-tabs .nav-link.active { color: #2563eb; border-bottom: 3px solid #2563eb; background: transparent; }
+        .table thead { background-color: #1e293b; color: white; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h2>Dashboard Kredensial Sistem</h2>
-        <div>
-            Pengguna: <b>{{ user }}</b> ({{ role }}) | 
-            <a href="/logout">Keluar</a>
+
+    <!-- NAVBAR ATAS -->
+    <nav class="navbar navbar-dark mb-4 px-4">
+        <span class="navbar-brand mb-0 h1"><i class="fa-solid fa-shield-halved me-2"></i> Manajemen Kredensial</span>
+        <div class="text-white">
+            <span class="me-3"><i class="fa-solid fa-user me-1"></i> {{ session.get('username') }} (<strong>{{ session.get('role')|upper }}</strong>)</span>
+            <a href="/logout" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-right-from-bracket"></i> Keluar</a>
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+
+        <!-- NOTIFIKASI PESAN (HANYA MUNCUL JIKA ADA PESAN) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- MENU NAVIGASI TAB -->
+        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+            <!-- TAB 1: KREDENSIAL (Bisa diakses Semua Role) -->
+            <li class="nav-item">
+                <button class="nav-link active" id="kredensial-tab" data-bs-toggle="tab" data-bs-target="#kredensial" type="button">
+                    <i class="fa-solid fa-key me-2"></i> Daftar Kredensial Sistem
+                </button>
+            </li>
+
+            <!-- TAB 2: MANAJEMEN USER (HANYA MUNCUL UNTUK ADMIN) -->
+            {% if session.get('role') == 'admin' %}
+            <li class="nav-item">
+                <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button">
+                    <i class="fa-solid fa-users-gear me-2"></i> Kelola Pengguna (Akses Login)
+                </button>
+            </li>
+            {% endif %}
+        </ul>
+
+        <!-- ISI KONTEN MENURUT TAB -->
+        <div class="tab-content" id="myTabContent">
+            
+            <!-- ===== ISI TAB 1: DAFTAR KREDENSIAL ===== -->
+            <div class="tab-pane fade show active" id="kredensial">
+                
+                <!-- FORM TAMBAH KREDENSIAL (KHUSUS ADMIN) -->
+                {% if session.get('role') == 'admin' %}
+                <div class="card p-4 mb-4">
+                    <h5 class="card-title text-primary"><i class="fa-solid fa-plus me-2"></i> Tambah Kredensial Sistem Baru</h5>
+                    <form action="/add_credential" method="POST" class="row g-3 mt-1">
+                        <div class="col-md-4">
+                            <input type="text" name="service_name" class="form-control" placeholder="Nama Sistem (misal: ROMANTIK BPS)" required>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" name="username" class="form-control" placeholder="Username / Email" required>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="password" name="password" class="form-control" placeholder="Password Sistem" required>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="submit" class="btn btn-primary w-100">Simpan</button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+
+                <!-- TABEL KREDENSIAL -->
+                <div class="card p-3">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Nama Sistem</th>
+                                    <th>Username</th>
+                                    <th>Password (Terenkripsi)</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in credentials %}
+                                <tr>
+                                    <td class="fw-bold">{{ row[1] }}</td>
+                                    <td>{{ row[2] }}</td>
+                                    <td><span id="pass-field-{{ row[0] }}">••••••••••••</span></td>
+                                    <td class="text-center">
+                                        <button onclick="togglePassword({{ row[0] }})" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fa-solid fa-eye me-1"></i> Lihat Password
+                                        </button>
+                                        {% if session.get('role') == 'admin' %}
+                                        <a href="/delete_credential/{{ row[0] }}" class="btn btn-sm btn-outline-danger ms-1" onclick="return confirm('Hapus kredensial ini?')">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="text-center text-muted">Belum ada data kredensial.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== ISI TAB 2: KELOLA PENGGUNA (KHUSUS ADMIN) ===== -->
+            {% if session.get('role') == 'admin' %}
+            <div class="tab-pane fade" id="users">
+                
+                <!-- FORM TAMBAH PENGGUNA BARU -->
+                <div class="card p-4 mb-4">
+                    <h5 class="card-title text-success"><i class="fa-solid fa-user-plus me-2"></i> Tambah Pengguna / Akses User Baru</h5>
+                    <form action="/add_user" method="POST" class="row g-3 mt-1">
+                        <div class="col-md-4">
+                            <input type="text" name="username" class="form-control" placeholder="Masukkan Username Baru" required>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="password" name="password" class="form-control" placeholder="Masukkan Password Baru" required>
+                        </div>
+                        <div class="col-md-2">
+                            <select name="role" class="form-select">
+                                <option value="staf">Staf / PKL</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-success w-100">Simpan User</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- TABEL DAFTAR PENGGUNA -->
+                <div class="card p-3">
+                    <h6 class="fw-bold mb-3"><i class="fa-solid fa-users me-2"></i> Daftar Pengguna Terdaftar</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Role / Hak Akses</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user[0] }}</td>
+                                    <td class="fw-bold">{{ user[1] }}</td>
+                                    <td>
+                                        <span class="badge {{ 'bg-danger' if user[2] == 'admin' else 'bg-info' }}">
+                                            {{ user[2]|upper }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if user[1] != session.get('username') %}
+                                        <a href="/delete_user/{{ user[0] }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Hapus user ini?')">
+                                            <i class="fa-solid fa-trash"></i> Hapus
+                                        </a>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Akun Anda</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
         </div>
     </div>
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for message in messages %}
-          <div class="alert">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <!-- HANYA ADMIN YANG BISA LIHAT & TAMBAH USER -->
-    {% if role == 'Admin' %}
-    <div class="card-add-user">
-        <h3>➕ Tambah Pengguna / Akses User Baru</h3>
-        <form action="/tambah_user" method="POST" class="form-inline">
-            <input type="text" name="username" placeholder="Masukkan Username Baru" required>
-            <input type="password" name="password" placeholder="Masukkan Password Baru" required>
-            <button type="submit" class="btn-submit">Simpan User</button>
-        </form>
-    </div>
-
-    <h3 class="section-title">👥 Daftar Pengguna Terdaftar (Khusus Admin)</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Aksi</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for u in users %}
-            <tr>
-                <td>{{ u[0] }}</td>
-                <td><b>{{ u[1] }}</b></td>
-                <td>{{ u[2] }}</td>
-                <td><span style="color: green; font-weight: bold;">Aktif</span></td>
-                <td>
-                    {% if u[1] != 'admin' %}
-                    <a href="/hapus_user/{{ u[0] }}" class="btn-delete" onclick="return confirm('Yakin ingin menghapus akun {{ u[1] }}?')">🗑️ Hapus</a>
-                    {% else %}
-                    <span style="color: gray; font-size: 12px;">(Akun Utama)</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% endif %}
-
-    <!-- TABEL KREDENSIAL SISTEM (Dapat dilihat oleh Admin & Staf/PKL) -->
-    <h3 class="section-title">🔑 Kredensial Akses Sistem</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Nama Sistem</th>
-                <th>Username</th>
-                <th>Password (Terenkripsi)</th>
-                <th>Aksi</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in data %}
-            <tr>
-                <td>{{ row[1] }}</td>
-                <td>{{ row[2] }}</td>
-                <td id="pass-field-{{ row[0] }}">••••••••••••</td>
-                <td>
-                    <button class="btn-eye" onclick="toggleDecrypt('{{ row[0] }}')">👁️ Lihat Password</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
+    <!-- SCRIPT BOOTSTRAP & AJAX LIHAT PASSWORD -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function toggleDecrypt(id) {
-            const field = document.getElementById('pass-field-' + id);
-            
-            fetch('/decrypt/' + id, { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                if (data.password) {
-                    field.innerText = data.password;
-                    field.style.color = "green";
-                    field.style.fontWeight = "bold";
-                }
-            });
+        function togglePassword(id) {
+            const field = document.getElementById(`pass-field-${id}`);
+            if (field.innerText === '••••••••••••') {
+                fetch(`/get_password/${id}`)
+                    .then(res => res.json())
+                    .then(data => { field.innerText = data.password; });
+            } else {
+                field.innerText = '••••••••••••';
+            }
         }
     </script>
 </body>
