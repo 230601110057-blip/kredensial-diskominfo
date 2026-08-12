@@ -1,15 +1,6 @@
 import base64
 import sqlite3
-from flask import (
-    Flask,
-    flash,
-    jsonify,
-    redirect,
-    render_template,
-    request,
-    session,
-    url_for,
-)
+from flask import Flask, flash, jsonify, redirect, render_template, request, session
 
 app = Flask(__name__)
 app.secret_key = 'kominfo_secret_key'
@@ -18,7 +9,7 @@ app.secret_key = 'kominfo_secret_key'
 A = 15
 B = 10
 M = 256
-A_INV = 239  # Invers dari 15 mod 256 adalah 239
+A_INV = 239  # Invers 15 mod 256
 
 
 def encrypt_affine(text):
@@ -27,7 +18,6 @@ def encrypt_affine(text):
     x = ord(char) % M
     enc_val = (A * x + B) % M
     encrypted_bytes.append(enc_val)
-  # Menggunakan Base64 agar karakter aman disimpan di database dan HTML
   return base64.b64encode(encrypted_bytes).decode('utf-8')
 
 
@@ -41,10 +31,14 @@ def decrypt_affine(text):
       decrypted += chr(dec_val)
     return decrypted
   except Exception:
-    return text  # Fallback jika data lama belum terformat base64
+    return text  # Fallback jika ada data lama
 
 
-# 1. ROUTE DASHBOARD
+@app.route('/')
+def home():
+  return redirect('/dashboard')
+
+
 @app.route('/dashboard')
 def dashboard():
   if 'username' not in session:
@@ -67,15 +61,14 @@ def dashboard():
   )
 
 
-# 2. ROUTE TAMBAH KREDENSIAL
 @app.route('/add_credential', methods=['POST'])
 def add_credential():
   if 'username' not in session or session.get('role', '').lower() != 'admin':
     return redirect('/dashboard')
 
-  service_name = request.form['service_name']
-  username = request.form['username']
-  password_plain = request.form['password']
+  service_name = request.form.get('service_name', '')
+  username = request.form.get('username', '')
+  password_plain = request.form.get('password', '')
 
   password_encrypted = encrypt_affine(password_plain)
 
@@ -93,15 +86,14 @@ def add_credential():
   return redirect('/dashboard')
 
 
-# 3. ROUTE TAMBAH USER BARU
 @app.route('/add_user', methods=['POST'])
 def add_user():
   if 'username' not in session or session.get('role', '').lower() != 'admin':
     return redirect('/dashboard')
 
-  username = request.form['username']
-  password = request.form['password']
-  role = request.form['role']
+  username = request.form.get('username', '')
+  password = request.form.get('password', '')
+  role = request.form.get('role', 'staf')
 
   conn = sqlite3.connect('database.db')
   cursor = conn.cursor()
@@ -120,7 +112,6 @@ def add_user():
   return redirect('/dashboard')
 
 
-# 4. ROUTE LIHAT PASSWORD
 @app.route('/get_password/<int:id>')
 def get_password(id):
   conn = sqlite3.connect('database.db')
@@ -137,7 +128,6 @@ def get_password(id):
   return jsonify({'password': 'Gagal mengambil password'}), 404
 
 
-# 5. ROUTE HAPUS KREDENSIAL
 @app.route('/delete_credential/<int:id>')
 def delete_credential(id):
   if 'username' not in session or session.get('role', '').lower() != 'admin':
@@ -153,7 +143,6 @@ def delete_credential(id):
   return redirect('/dashboard')
 
 
-# 6. ROUTE HAPUS USER
 @app.route('/delete_user/<int:id>')
 def delete_user(id):
   if 'username' not in session or session.get('role', '').lower() != 'admin':
@@ -170,4 +159,4 @@ def delete_user(id):
 
 
 if __name__ == '__main__':
-  app.run(debug=True)
+  app.run(host='0.0.0.0', port=5000, debug=True)
