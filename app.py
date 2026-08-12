@@ -160,3 +160,36 @@ def delete_user(id):
 
 if __name__ == '__main__':
   app.run(host='0.0.0.0', port=5000, debug=True)
+
+  # 7. ROUTE LOGIN (TAMPILAN & PROSES)
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+  if request.method == 'POST':
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute(
+        'SELECT id, username, password, role FROM users WHERE username = ? AND'
+        ' password = ?',
+        (username, password),
+    )
+    user = cursor.fetchone()
+    conn.close()
+
+    if user:
+      session['username'] = user[1]
+      session['role'] = user[3]
+      return redirect('/dashboard')
+    else:
+      flash('Username atau password salah!', 'danger')
+
+  return render_template('login.html')
+
+
+# 8. ROUTE LOGOUT
+@app.route('/logout')
+def logout():
+  session.clear()
+  return redirect('/login')
