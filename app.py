@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 import sqlite3
-import math
 
 app = Flask(__name__)
 app.secret_key = 'kunci_rahasia_diskominfo_batu'
@@ -8,7 +7,7 @@ app.secret_key = 'kunci_rahasia_diskominfo_batu'
 # --- 1. METODE MATEMATIKA: AFFINE CIPHER ---
 a = 5
 b = 8
-m = 256  # Menggunakan jangkauan ASCII (0-255)
+m = 256  # Jangkauan ASCII (0-255)
 
 def mod_inverse(a, m):
     for x in range(1, m):
@@ -60,13 +59,12 @@ def init_db():
         )
     ''')
     
-    # Buat Akun Admin Default & Data Dummy jika belum ada
+    # Akun Default
     cursor.execute("SELECT * FROM users WHERE username = 'admin'")
     if not cursor.fetchone():
         cursor.execute("INSERT INTO users (username, password, role, status) VALUES ('admin', 'admin123', 'Admin', 1)")
         cursor.execute("INSERT INTO users (username, password, role, status) VALUES ('pkl_stat', 'pkl123', 'Staf/PKL', 1)")
         
-        # Masukkan sampel akun ROMANTIK (Password di-enkripsi dengan Affine Cipher)
         pass_encrypted = encrypt_affine("takoksengero")
         cursor.execute("INSERT INTO credentials (nama_sistem, username_sistem, password_encrypted) VALUES (?, ?, ?)",
                        ('ROMANTIK BPS', 'dastatkominfo@batukota.go.id', pass_encrypted))
@@ -93,7 +91,7 @@ def login():
         if account:
             session['loggedin'] = True
             session['username'] = account[1]
-            session['role'] = account[3]
+            session['role'] = account[3]  # Menyimpan role dari database ('Admin' / 'Staf/PKL')
             return redirect(url_for('dashboard'))
         else:
             return "Login Gagal! Username/Password salah atau akun nonaktif."
@@ -107,17 +105,26 @@ def dashboard():
         
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
+    
     cursor.execute("SELECT * FROM credentials")
     data_kredensial = cursor.fetchall()
+    
+    cursor.execute("SELECT id, username, role, status FROM users")
+    data_users = cursor.fetchall()
+    
     conn.close()
     
-    return render_template('dashboard.html', data=data_kredensial, user=session['username'], role=session['role'])
+    return render_template('dashboard.html', 
+                           data=data_kredensial, 
+                           users=data_users, 
+                           user=session['username'], 
+                           role=session['role'])
 
-# ROUTE UNTUK TAMBAH USER BARU (Dipindahkan ke posisi yang benar)
+# ROUTE TAMBAH USER (Hanya Admin)
 @app.route('/tambah_user', methods=['POST'])
 def tambah_user():
-    if not session.get('loggedin'):
-        return redirect(url_for('login'))
+    if not session.get('loggedin') or session.get('role') != 'Admin':
+        return "Akses Ditolak! Hanya Admin yang dapat menambah pengguna.", 403
 
     username_baru = request.form.get('username')
     password_baru = request.form.get('password')
@@ -125,7 +132,6 @@ def tambah_user():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
     try:
-        # Menambahkan user baru dengan default role 'Staf/PKL' dan status 1 (Aktif)
         cursor.execute("INSERT INTO users (username, password, role, status) VALUES (?, ?, 'Staf/PKL', 1)", 
                        (username_baru, password_baru))
         conn.commit()
@@ -137,7 +143,22 @@ def tambah_user():
 
     return redirect(url_for('dashboard'))
 
-# API untuk pemicu Dekripsi Matematika saat ikon mata diklik
+# ROUTE HAPUS USER (Hanya Admin)
+@app.route('/hapus_user/<int:id>')
+def hapus_user(id):
+    if not session.get('loggedin') or session.get('role') != 'Admin':
+        return "Akses Ditolak! Hanya Admin yang dapat menghapus pengguna.", 403
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM users WHERE id = ? AND username != 'admin'", (id,))
+    conn.commit()
+    conn.close()
+    
+    flash("Pengguna berhasil dihapus!")
+    return redirect(url_for('dashboard'))
+
+# API DEKRIPSI
 @app.route('/decrypt/<int:id>', methods=['POST'])
 def get_decrypted_password(id):
     if not session.get('loggedin'):
