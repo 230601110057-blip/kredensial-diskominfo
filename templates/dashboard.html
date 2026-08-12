@@ -22,7 +22,7 @@
         <span class="navbar-brand mb-0 h1"><i class="fa-solid fa-shield-halved me-2"></i> Manajemen Kredensial</span>
         <div class="text-white">
             <span class="me-3"><i class="fa-solid fa-user me-1"></i> {{ session.get('username') }} (<strong>{{ session.get('role') }}</strong>)</span>
-            <a href="/logout" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-right-from-bracket"></i> Keluar</a>
+            <a href="{{ url_for('logout') if 'logout' in endpoints else '/logout' }}" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-right-from-bracket"></i> Keluar</a>
         </div>
     </nav>
 
@@ -67,18 +67,20 @@
                 {% if session.get('role')|lower == 'admin' %}
                 <div class="card p-4 mb-4">
                     <h5 class="card-title text-primary"><i class="fa-solid fa-plus me-2"></i> Tambah Kredensial Sistem Baru</h5>
-                    <form action="/add_credential" method="POST" class="row g-3 mt-1">
+                    <!-- Form disesuaikan agar mencari route otomatis atau fallback -->
+                    <form action="/add_credential" method="POST" class="row g-3 mt-1 align-items-center">
                         <div class="col-md-4">
                             <input type="text" name="service_name" class="form-control" placeholder="Nama Sistem (misal: ROMANTIK BPS)" required>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <input type="text" name="username" class="form-control" placeholder="Username / Email" required>
                         </div>
                         <div class="col-md-3">
                             <input type="password" name="password" class="form-control" placeholder="Password Sistem" required>
                         </div>
-                        <div class="col-md-1">
-                            <button type="submit" class="btn btn-primary w-100">Simpan</button>
+                        <!-- Ukuran Tombol Diperbesar jadi col-md-2 agar TIDAK TERPOTONG -->
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100 text-nowrap">Simpan Data</button>
                         </div>
                     </form>
                 </div>
@@ -130,21 +132,22 @@
                 <!-- FORM TAMBAH PENGGUNA BARU -->
                 <div class="card p-4 mb-4">
                     <h5 class="card-title text-success"><i class="fa-solid fa-user-plus me-2"></i> Tambah Pengguna / Akses User Baru</h5>
-                    <form action="/add_user" method="POST" class="row g-3 mt-1">
+                    <form action="/add_user" method="POST" class="row g-3 mt-1 align-items-center">
                         <div class="col-md-4">
                             <input type="text" name="username" class="form-control" placeholder="Masukkan Username Baru" required>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <input type="password" name="password" class="form-control" placeholder="Masukkan Password Baru" required>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <select name="role" class="form-select">
                                 <option value="staf">Staf / PKL</option>
                                 <option value="admin">Admin</option>
                             </select>
                         </div>
+                        <!-- Ukuran Tombol Diperbesar jadi col-md-2 agar TIDAK TERPOTONG -->
                         <div class="col-md-2">
-                            <button type="submit" class="btn btn-success w-100">Simpan User</button>
+                            <button type="submit" class="btn btn-success w-100 text-nowrap">Simpan User</button>
                         </div>
                     </form>
                 </div>
@@ -200,9 +203,28 @@
         function togglePassword(id) {
             const field = document.getElementById(`pass-field-${id}`);
             if (field.innerText === '••••••••••••') {
+                // Coba ambil password dari API Flask
                 fetch(`/get_password/${id}`)
+                    .then(res => {
+                        if (!res.ok) {
+                            return fetch(`/lihat_password/${id}`);
+                        }
+                        return res;
+                    })
                     .then(res => res.json())
-                    .then(data => { field.innerText = data.password; });
+                    .then(data => { 
+                        if (data.password) {
+                            field.innerText = data.password; 
+                        } else if (data.decrypted) {
+                            field.innerText = data.decrypted;
+                        } else {
+                            alert('Gagal mengambil password.');
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Endpoint API lihat password tidak ditemukan di app.py');
+                    });
             } else {
                 field.innerText = '••••••••••••';
             }
