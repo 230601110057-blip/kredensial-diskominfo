@@ -33,12 +33,11 @@ def decrypt_affine(cipher):
         plain += chr(dec_char)
     return plain
 
-# --- 2. INISIALISASI DATABASE SQLITE ---
+# --- 2. DATABASE ---
 def init_db():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
     
-    # Tabel Users
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,7 +48,6 @@ def init_db():
         )
     ''')
     
-    # Tabel Kredensial
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS credentials (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,7 +57,6 @@ def init_db():
         )
     ''')
     
-    # Akun Default
     cursor.execute("SELECT * FROM users WHERE username = 'admin'")
     if not cursor.fetchone():
         cursor.execute("INSERT INTO users (username, password, role, status) VALUES ('admin', 'admin123', 'Admin', 1)")
@@ -74,7 +71,7 @@ def init_db():
 
 init_db()
 
-# --- 3. ROUTING APLIKASI WEB ---
+# --- 3. ROUTE LOGIN & LOGOUT ---
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -91,12 +88,19 @@ def login():
         if account:
             session['loggedin'] = True
             session['username'] = account[1]
-            session['role'] = account[3]  # Menyimpan role dari database ('Admin' / 'Staf/PKL')
+            session['role'] = account[3]
             return redirect(url_for('dashboard'))
         else:
-            return "Login Gagal! Username/Password salah atau akun nonaktif."
+            flash("Login Gagal! Username/Password salah.")
             
     return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+# --- 4. DASHBOARD KREDENSIAL SISTEM ---
 
 @app.route('/dashboard')
 def dashboard():
@@ -105,60 +109,77 @@ def dashboard():
         
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
-    
     cursor.execute("SELECT * FROM credentials")
     data_kredensial = cursor.fetchall()
-    
-    cursor.execute("SELECT id, username, role, status FROM users")
-    data_users = cursor.fetchall()
-    
     conn.close()
     
     return render_template('dashboard.html', 
                            data=data_kredensial, 
-                           users=data_users, 
                            user=session['username'], 
                            role=session['role'])
 
-# ROUTE TAMBAH USER (Hanya Admin)
-@app.route('/tambah_user', methods=['POST'])
-def tambah_user():
+# CRUD KREDENSIAL (Khusus Admin)
+@app.route('/tambah_kredensial', methods=['POST'])
+def tambah_kredensial():
     if not session.get('loggedin') or session.get('role') != 'Admin':
-        return "Akses Ditolak! Hanya Admin yang dapat menambah pengguna.", 403
+        return "Akses Ditolak!", 403
 
-    username_baru = request.form.get('username')
-    password_baru = request.form.get('password')
+    sistem = request.form.get('nama_sistem')
+    username = request.form.get('username_sistem')
+    password_plain = request.form.get('password_sistem')
+    
+    pass_encrypted = encrypt_affine(password_plain)
 
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
-    try:
-        cursor.execute("INSERT INTO users (username, password, role, status) VALUES (?, ?, 'Staf/PKL', 1)", 
-                       (username_baru, password_baru))
-        conn.commit()
-        flash("User baru berhasil ditambahkan!")
-    except sqlite3.IntegrityError:
-        flash("Username sudah ada!")
-    finally:
-        conn.close()
+    cursor.execute("INSERT INTO credentials (nama_sistem, username_sistem, password_encrypted) VALUES (?, ?, ?)",
+                   (sistem, username, pass_encrypted))
+    conn.commit()
+    conn.close()
 
+    flash("Kredensial sistem baru berhasil ditambahkan!")
     return redirect(url_for('dashboard'))
 
-# ROUTE HAPUS USER (Hanya Admin)
-@app.route('/hapus_user/<int:id>')
-def hapus_user(id):
+@app.route('/edit_kredensial/<int:id>', methods=['POST'])
+def edit_kredensial(id):
     if not session.get('loggedin') or session.get('role') != 'Admin':
-        return "Akses Ditolak! Hanya Admin yang dapat menghapus pengguna.", 403
+        return "Akses Ditolak!", 403
+
+    sistem = request.form.get('nama_sistem')
+    username = request.form.get('username_sistem')
+    password_plain = request.form.get('password_sistem')
 
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM users WHERE id = ? AND username != 'admin'", (id,))
+    
+    if password_plain:
+        pass_encrypted = encrypt_affine(password_plain)
+        cursor.execute("UPDATE credentials SET nama_sistem=?, username_sistem=?, password_encrypted=? WHERE id=?",
+                       (sistem, username, pass_encrypted, id))
+    else:
+        cursor.execute("UPDATE credentials SET nama_sistem=?, username_sistem=? WHERE id=?",
+                       (sistem, username, id))
+                       
+    conn.commit()
+    conn.close()
+
+    flash("Kredensial sistem berhasil diperbarui!")
+    return redirect(url_for('dashboard'))
+
+@app.route('/hapus_kredensial/<int:id>')
+def hapus_kredensial(id):
+    if not session.get('loggedin') or session.get('role') != 'Admin':
+        return "Akses Ditolak!", 403
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM credentials WHERE id = ?", (id,))
     conn.commit()
     conn.close()
     
-    flash("Pengguna berhasil dihapus!")
+    flash("Kredensial sistem berhasil dihapus!")
     return redirect(url_for('dashboard'))
 
-# API DEKRIPSI
 @app.route('/decrypt/<int:id>', methods=['POST'])
 def get_decrypted_password(id):
     if not session.get('loggedin'):
@@ -175,10 +196,59 @@ def get_decrypted_password(id):
         return jsonify({'password': password_asli})
     return jsonify({'error': 'Data not found'}), 404
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
+# --- 5. HALAMAN KHUSUS MANAJEMEN PENGGUNA (USERS) ---
+
+@app.route('/users')
+def manage_users():
+    if not session.get('loggedin') or session.get('role') != 'Admin':
+        return "Akses Ditolak! Halaman ini khusus Admin.", 403
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, role, status FROM users")
+    data_users = cursor.fetchall()
+    conn.close()
+
+    return render_template('users.html', 
+                           users=data_users, 
+                           user=session['username'], 
+                           role=session['role'])
+
+@app.route('/tambah_user', methods=['POST'])
+def tambah_user():
+    if not session.get('loggedin') or session.get('role') != 'Admin':
+        return "Akses Ditolak!", 403
+
+    username_baru = request.form.get('username')
+    password_baru = request.form.get('password')
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO users (username, password, role, status) VALUES (?, ?, 'Staf/PKL', 1)", 
+                       (username_baru, password_baru))
+        conn.commit()
+        flash("User baru berhasil ditambahkan!")
+    except sqlite3.IntegrityError:
+        flash("Username sudah ada!")
+    finally:
+        conn.close()
+
+    return redirect(url_for('manage_users'))
+
+@app.route('/hapus_user/<int:id>')
+def hapus_user(id):
+    if not session.get('loggedin') or session.get('role') != 'Admin':
+        return "Akses Ditolak!", 403
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM users WHERE id = ? AND username != 'admin'", (id,))
+    conn.commit()
+    conn.close()
+    
+    flash("Pengguna berhasil dihapus!")
+    return redirect(url_for('manage_users'))
 
 if __name__ == '__main__':
     app.run(debug=True)
