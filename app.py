@@ -12,6 +12,47 @@ M = 256
 A_INV = 239  # Invers 15 mod 256
 
 
+# FUNGSI INISIALISASI DATABASE OTOMATIS
+def init_db():
+  conn = sqlite3.connect('database.db')
+  cursor = conn.cursor()
+
+  # Buat tabel users jika belum ada
+  cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            role TEXT NOT NULL
+        )
+    """)
+
+  # Buat tabel credentials jika belum ada
+  cursor.execute("""
+        CREATE TABLE IF NOT EXISTS credentials (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            service_name TEXT NOT NULL,
+            username TEXT NOT NULL,
+            password_encrypted TEXT NOT NULL
+        )
+    """)
+
+  # Buat Akun Admin Default jika belum ada user sama sekali
+  cursor.execute('SELECT COUNT(*) FROM users')
+  if cursor.fetchone()[0] == 0:
+    cursor.execute(
+        "INSERT INTO users (username, password, role) VALUES ('admin',"
+        " 'admin123', 'admin')"
+    )
+
+  conn.commit()
+  conn.close()
+
+
+# Jalankan inisialisasi database saat aplikasi pertama kali dinyalakan
+init_db()
+
+
 def encrypt_affine(text):
   encrypted_bytes = bytearray()
   for char in text:
@@ -31,12 +72,44 @@ def decrypt_affine(text):
       decrypted += chr(dec_val)
     return decrypted
   except Exception:
-    return text  # Fallback jika ada data lama
+    return text
 
 
 @app.route('/')
 def home():
   return redirect('/dashboard')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+  if request.method == 'POST':
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute(
+        'SELECT id, username, password, role FROM users WHERE username = ? AND'
+        ' password = ?',
+        (username, password),
+    )
+    user = cursor.fetchone()
+    conn.close()
+
+    if user:
+      session['username'] = user[1]
+      session['role'] = user[3]
+      return redirect('/dashboard')
+    else:
+      flash('Username atau password salah!', 'danger')
+
+  return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+  session.clear()
+  return redirect('/login')
 
 
 @app.route('/dashboard')
@@ -160,36 +233,3 @@ def delete_user(id):
 
 if __name__ == '__main__':
   app.run(host='0.0.0.0', port=5000, debug=True)
-
-  # 7. ROUTE LOGIN (TAMPILAN & PROSES)
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-  if request.method == 'POST':
-    username = request.form.get('username')
-    password = request.form.get('password')
-
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-    cursor.execute(
-        'SELECT id, username, password, role FROM users WHERE username = ? AND'
-        ' password = ?',
-        (username, password),
-    )
-    user = cursor.fetchone()
-    conn.close()
-
-    if user:
-      session['username'] = user[1]
-      session['role'] = user[3]
-      return redirect('/dashboard')
-    else:
-      flash('Username atau password salah!', 'danger')
-
-  return render_template('login.html')
-
-
-# 8. ROUTE LOGOUT
-@app.route('/logout')
-def logout():
-  session.clear()
-  return redirect('/login')
