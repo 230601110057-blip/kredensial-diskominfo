@@ -21,14 +21,14 @@
     <nav class="navbar navbar-dark mb-4 px-4">
         <span class="navbar-brand mb-0 h1"><i class="fa-solid fa-shield-halved me-2"></i> Manajemen Kredensial</span>
         <div class="text-white">
-            <span class="me-3"><i class="fa-solid fa-user me-1"></i> {{ session.get('username') }} (<strong>{{ session.get('role')|upper }}</strong>)</span>
+            <span class="me-3"><i class="fa-solid fa-user me-1"></i> {{ session.get('username') }} (<strong>{{ session.get('role') }}</strong>)</span>
             <a href="/logout" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-right-from-bracket"></i> Keluar</a>
         </div>
     </nav>
 
     <div class="container pb-5">
 
-        <!-- NOTIFIKASI PESAN (HANYA MUNCUL JIKA ADA PESAN) -->
+        <!-- NOTIFIKASI PESAN -->
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
@@ -42,15 +42,13 @@
 
         <!-- MENU NAVIGASI TAB -->
         <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
-            <!-- TAB 1: KREDENSIAL (Bisa diakses Semua Role) -->
             <li class="nav-item">
                 <button class="nav-link active" id="kredensial-tab" data-bs-toggle="tab" data-bs-target="#kredensial" type="button">
                     <i class="fa-solid fa-key me-2"></i> Daftar Kredensial Sistem
                 </button>
             </li>
 
-            <!-- TAB 2: MANAJEMEN USER (HANYA MUNCUL UNTUK ADMIN) -->
-            {% if session.get('role') == 'admin' %}
+            {% if session.get('role')|lower == 'admin' %}
             <li class="nav-item">
                 <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button">
                     <i class="fa-solid fa-users-gear me-2"></i> Kelola Pengguna (Akses Login)
@@ -66,7 +64,7 @@
             <div class="tab-pane fade show active" id="kredensial">
                 
                 <!-- FORM TAMBAH KREDENSIAL (KHUSUS ADMIN) -->
-                {% if session.get('role') == 'admin' %}
+                {% if session.get('role')|lower == 'admin' %}
                 <div class="card p-4 mb-4">
                     <h5 class="card-title text-primary"><i class="fa-solid fa-plus me-2"></i> Tambah Kredensial Sistem Baru</h5>
                     <form action="/add_credential" method="POST" class="row g-3 mt-1">
@@ -87,6 +85,7 @@
                 {% endif %}
 
                 <!-- TABEL KREDENSIAL -->
+                {% set list_data = credentials or data or data_kredensial or rows %}
                 <div class="card p-3">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
@@ -99,7 +98,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for row in credentials %}
+                                {% for row in list_data %}
                                 <tr>
                                     <td class="fw-bold">{{ row[1] }}</td>
                                     <td>{{ row[2] }}</td>
@@ -108,7 +107,7 @@
                                         <button onclick="togglePassword({{ row[0] }})" class="btn btn-sm btn-outline-secondary">
                                             <i class="fa-solid fa-eye me-1"></i> Lihat Password
                                         </button>
-                                        {% if session.get('role') == 'admin' %}
+                                        {% if session.get('role')|lower == 'admin' %}
                                         <a href="/delete_credential/{{ row[0] }}" class="btn btn-sm btn-outline-danger ms-1" onclick="return confirm('Hapus kredensial ini?')">
                                             <i class="fa-solid fa-trash"></i>
                                         </a>
@@ -116,7 +115,7 @@
                                     </td>
                                 </tr>
                                 {% else %}
-                                <tr><td colspan="4" class="text-center text-muted">Belum ada data kredensial.</td></tr>
+                                <tr><td colspan="4" class="text-center text-muted py-4">Belum ada data kredensial. Silakan isi form di atas.</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -124,8 +123,8 @@
                 </div>
             </div>
 
-            <!-- ===== ISI TAB 2: KELOLA PENGGUNA (KHUSUS ADMIN) ===== -->
-            {% if session.get('role') == 'admin' %}
+            <!-- ===== ISI TAB 2: KELOLA PENGGUNA ===== -->
+            {% if session.get('role')|lower == 'admin' %}
             <div class="tab-pane fade" id="users">
                 
                 <!-- FORM TAMBAH PENGGUNA BARU -->
@@ -151,6 +150,7 @@
                 </div>
 
                 <!-- TABEL DAFTAR PENGGUNA -->
+                {% set list_users = users or data_user or user_list %}
                 <div class="card p-3">
                     <h6 class="fw-bold mb-3"><i class="fa-solid fa-users me-2"></i> Daftar Pengguna Terdaftar</h6>
                     <div class="table-responsive">
@@ -164,12 +164,12 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for user in users %}
+                                {% for user in list_users %}
                                 <tr>
                                     <td>{{ user[0] }}</td>
                                     <td class="fw-bold">{{ user[1] }}</td>
                                     <td>
-                                        <span class="badge {{ 'bg-danger' if user[2] == 'admin' else 'bg-info' }}">
+                                        <span class="badge {{ 'bg-danger' if user[2]|lower == 'admin' else 'bg-info' }}">
                                             {{ user[2]|upper }}
                                         </span>
                                     </td>
