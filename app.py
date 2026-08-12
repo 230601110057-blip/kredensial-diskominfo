@@ -5,8 +5,8 @@ app = Flask(__name__)
 app.secret_key = 'kunci_rahasia_diskominfo_batu'
 
 # --- 1. METODE MATEMATIKA: AFFINE CIPHER ---
-a = 5
-b = 8
+a = 11
+b = 15
 m = 256  # Jangkauan ASCII (0-255)
 
 def mod_inverse(a, m):
