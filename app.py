@@ -1,56 +1,49 @@
 import base64
+import os
 import sqlite3
 from flask import Flask, flash, jsonify, redirect, render_template, request, session
 
 app = Flask(__name__)
 app.secret_key = 'kominfo_secret_key'
 
-# RUMUS AFFINE CIPHER (MODULO 256, A=15, B=10)
+# RUMUS AFFINE CIPHER
 A = 15
 B = 10
 M = 256
-A_INV = 239  # Invers 15 mod 256
+A_INV = 239
 
 
-# FUNGSI INISIALISASI DATABASE OTOMATIS
 def init_db():
-  conn = sqlite3.connect('database.db')
-  cursor = conn.cursor()
-
-  # Buat tabel users jika belum ada
-  cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT NOT NULL
-        )
-    """)
-
-  # Buat tabel credentials jika belum ada
-  cursor.execute("""
-        CREATE TABLE IF NOT EXISTS credentials (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            service_name TEXT NOT NULL,
-            username TEXT NOT NULL,
-            password_encrypted TEXT NOT NULL
-        )
-    """)
-
-  # Buat Akun Admin Default jika belum ada user sama sekali
-  cursor.execute('SELECT COUNT(*) FROM users')
-  if cursor.fetchone()[0] == 0:
-    cursor.execute(
-        "INSERT INTO users (username, password, role) VALUES ('admin',"
-        " 'admin123', 'admin')"
-    )
-
-  conn.commit()
-  conn.close()
-
-
-# Jalankan inisialisasi database saat aplikasi pertama kali dinyalakan
-init_db()
+  """Membuat tabel dan akun admin otomatis jika belum ada di Railway."""
+  try:
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT NOT NULL
+            )
+        """)
+    cursor.execute("""
+            CREATE TABLE IF NOT EXISTS credentials (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                service_name TEXT NOT NULL,
+                username TEXT NOT NULL,
+                password_encrypted TEXT NOT NULL
+            )
+        """)
+    cursor.execute("SELECT COUNT(*) FROM users")
+    if cursor.fetchone()[0] == 0:
+      cursor.execute(
+          "INSERT INTO users (username, password, role) VALUES ('admin',"
+          " 'admin123', 'admin')"
+      )
+    conn.commit()
+    conn.close()
+  except Exception as e:
+    print(f'DB Error: {e}')
 
 
 def encrypt_affine(text):
@@ -75,13 +68,19 @@ def decrypt_affine(text):
     return text
 
 
+# 1. ROUTE UTAMA
 @app.route('/')
 def home():
-  return redirect('/dashboard')
+  init_db()  # Pastikan DB dibuat saat pertama kali web dibuka
+  if 'username' in session:
+    return redirect('/dashboard')
+  return redirect('/login')
 
 
+# 2. ROUTE LOGIN
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+  init_db()
   if request.method == 'POST':
     username = request.form.get('username')
     password = request.form.get('password')
@@ -106,34 +105,36 @@ def login():
   return render_template('login.html')
 
 
+# 3. ROUTE LOGOUT
 @app.route('/logout')
 def logout():
   session.clear()
   return redirect('/login')
 
 
+# 4. ROUTE DASHBOARD
 @app.route('/dashboard')
 def dashboard():
   if 'username' not in session:
     return redirect('/login')
 
+  init_db()
   conn = sqlite3.connect('database.db')
   cursor = conn.cursor()
-
   cursor.execute(
       'SELECT id, service_name, username, password_encrypted FROM credentials'
   )
   credentials = cursor.fetchall()
-
   cursor.execute('SELECT id, username, role FROM users')
   users = cursor.fetchall()
-
   conn.close()
+
   return render_template(
       'dashboard.html', credentials=credentials, users=users
   )
 
 
+# 5. ROUTE TAMBAH KREDENSIAL
 @app.route('/add_credential', methods=['POST'])
 def add_credential():
   if 'username' not in session or session.get('role', '').lower() != 'admin':
@@ -142,7 +143,6 @@ def add_credential():
   service_name = request.form.get('service_name', '')
   username = request.form.get('username', '')
   password_plain = request.form.get('password', '')
-
   password_encrypted = encrypt_affine(password_plain)
 
   conn = sqlite3.connect('database.db')
@@ -159,6 +159,7 @@ def add_credential():
   return redirect('/dashboard')
 
 
+# 6. ROUTE TAMBAH USER
 @app.route('/add_user', methods=['POST'])
 def add_user():
   if 'username' not in session or session.get('role', '').lower() != 'admin':
@@ -185,6 +186,7 @@ def add_user():
   return redirect('/dashboard')
 
 
+# 7. ROUTE GET PASSWORD (DECRYPT)
 @app.route('/get_password/<int:id>')
 def get_password(id):
   conn = sqlite3.connect('database.db')
@@ -201,6 +203,7 @@ def get_password(id):
   return jsonify({'password': 'Gagal mengambil password'}), 404
 
 
+# 8. ROUTE HAPUS KREDENSIAL
 @app.route('/delete_credential/<int:id>')
 def delete_credential(id):
   if 'username' not in session or session.get('role', '').lower() != 'admin':
@@ -216,6 +219,7 @@ def delete_credential(id):
   return redirect('/dashboard')
 
 
+# 9. ROUTE HAPUS USER
 @app.route('/delete_user/<int:id>')
 def delete_user(id):
   if 'username' not in session or session.get('role', '').lower() != 'admin':
@@ -232,4 +236,5 @@ def delete_user(id):
 
 
 if __name__ == '__main__':
-  app.run(host='0.0.0.0', port=5000, debug=True)
+  port = int(os.environ.get('PORT', 5000))
+  app.run(host='0.0.0.0', port=port)
