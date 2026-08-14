@@ -14,10 +14,12 @@ A_INV = 239
 
 
 def init_db():
-  """Membuat tabel dan akun admin otomatis jika belum ada di Railway."""
+  """Membuat tabel jika belum ada."""
   try:
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
+
+    # 1. Tabel Users
     cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,20 +28,25 @@ def init_db():
                 role TEXT NOT NULL
             )
         """)
+
+    # 2. Tabel Credentials (Sesuai kolom di DB Anda: nama_sistem, username_sistem)
     cursor.execute("""
             CREATE TABLE IF NOT EXISTS credentials (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                service_name TEXT NOT NULL,
-                username TEXT NOT NULL,
+                nama_sistem TEXT NOT NULL,
+                username_sistem TEXT NOT NULL,
                 password_encrypted TEXT NOT NULL
             )
         """)
-    cursor.execute("SELECT COUNT(*) FROM users")
+
+    # Buat user admin default jika belum ada
+    cursor.execute('SELECT COUNT(*) FROM users')
     if cursor.fetchone()[0] == 0:
       cursor.execute(
           "INSERT INTO users (username, password, role) VALUES ('admin',"
           " 'admin123', 'admin')"
       )
+
     conn.commit()
     conn.close()
   except Exception as e:
@@ -52,12 +59,14 @@ def encrypt_affine(text):
     x = ord(char) % M
     enc_val = (A * x + B) % M
     encrypted_bytes.append(enc_val)
-  return base64.b64encode(encrypted_bytes).decode('utf-8')
+  # Mengubah byte menjadi string Hexadecimal (tanpa Base64)
+  return encrypted_bytes.hex()
 
 
 def decrypt_affine(text):
   try:
-    encrypted_bytes = base64.b64decode(text.encode('utf-8'))
+    # Mengubah string Hexadecimal kembali menjadi byte
+    encrypted_bytes = bytes.fromhex(text)
     decrypted = ''
     for byte in encrypted_bytes:
       y = byte
@@ -71,7 +80,7 @@ def decrypt_affine(text):
 # 1. ROUTE UTAMA
 @app.route('/')
 def home():
-  init_db()  # Pastikan DB dibuat saat pertama kali web dibuka
+  init_db()
   if 'username' in session:
     return redirect('/dashboard')
   return redirect('/login')
@@ -121,10 +130,14 @@ def dashboard():
   init_db()
   conn = sqlite3.connect('database.db')
   cursor = conn.cursor()
+
+  # UBAH BARIS INI: Panggil nama_sistem dan username_sistem
   cursor.execute(
-      'SELECT id, service_name, username, password_encrypted FROM credentials'
+      'SELECT id, nama_sistem, username_sistem, password_encrypted FROM'
+      ' credentials'
   )
   credentials = cursor.fetchall()
+
   cursor.execute('SELECT id, username, role FROM users')
   users = cursor.fetchall()
   conn.close()
@@ -134,23 +147,28 @@ def dashboard():
   )
 
 
-# 5. ROUTE TAMBAH KREDENSIAL
+# 5. ROUTE TAMBAH KREDENSIAL 
 @app.route('/add_credential', methods=['POST'])
 def add_credential():
   if 'username' not in session or session.get('role', '').lower() != 'admin':
     return redirect('/dashboard')
 
+  # Menangkap nilai dari input HTML: service_name, username, password
   service_name = request.form.get('service_name', '')
-  username = request.form.get('username', '')
+  username_sistem = request.form.get('username', '')
   password_plain = request.form.get('password', '')
+
+  # Enkripsi Password
   password_encrypted = encrypt_affine(password_plain)
 
   conn = sqlite3.connect('database.db')
   cursor = conn.cursor()
+
+  # Simpan ke DB SQLite menggunakan kolom: nama_sistem, username_sistem, password_encrypted
   cursor.execute(
-      'INSERT INTO credentials (service_name, username, password_encrypted)'
-      ' VALUES (?, ?, ?)',
-      (service_name, username, password_encrypted),
+      'INSERT INTO credentials (nama_sistem, username_sistem,'
+      ' password_encrypted) VALUES (?, ?, ?)',
+      (service_name, username_sistem, password_encrypted),
   )
   conn.commit()
   conn.close()
@@ -186,7 +204,7 @@ def add_user():
   return redirect('/dashboard')
 
 
-# 7. ROUTE GET PASSWORD (DECRYPT)
+# 7. ROUTE GET PASSWORD (DECRYPT VIA AJAX)
 @app.route('/get_password/<int:id>')
 def get_password(id):
   conn = sqlite3.connect('database.db')
@@ -237,4 +255,4 @@ def delete_user(id):
 
 if __name__ == '__main__':
   port = int(os.environ.get('PORT', 5000))
-  app.run(host='0.0.0.0', port=port)
+  app.run(host='0.0.0.0', port=port, debug=True)
