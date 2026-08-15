@@ -1,286 +1,237 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Kredensial Kominfo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Kredensial Kominfo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-        /* Latar Belakang Biru Dongker & Font Ringkas */
-        body { 
-            background-color: #0b1d3a; 
-            color: #e2e8f0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            font-size: 14px;
-        }
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border: none; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .nav-tabs .nav-link { color: #64748b; font-weight: 600; border: none; padding: 12px 20px; }
         
-        /* Navbar & Header Kartu */
-        .navbar, .table thead { 
-            background-color: #071326 !important; 
-        }
-        
-        /* Kartu Konten */
-        .card { 
-            background-color: #12284c; 
-            color: #ffffff;
-            border: 1px solid #1e3a68; 
-            border-radius: 6px; 
-            box-shadow: none;
-        }
-        
-        /* Tab Navigasi Polos */
-        .nav-tabs {
-            border-bottom: 1px solid #1e3a68;
-        }
-        .nav-tabs .nav-link { 
-            color: #94a3b8; 
-            font-weight: 500; 
-            border: none; 
-            padding: 10px 16px; 
-            font-size: 14px;
-        }
-        .nav-tabs .nav-link.active { 
-            color: #ffffff; 
-            border-bottom: 2px solid #3b82f6; 
-            background: transparent; 
-        }
+        /* Mengubah Navbar dan Header Tabel jadi Navy */
+        .navbar, .table thead { background-color: #0b1d3a !important; }
 
-        /* Ukuran Judul Ringkas */
-        h5, .h5 { font-size: 1.1rem; }
-        h6, .h6 { font-size: 0.95rem; }
-        
-        /* Input & Form */
-        .form-control, .form-select {
-            background-color: #071326;
-            border: 1px solid #1e3a68;
-            color: #ffffff;
-            font-size: 14px;
-        }
-        .form-control::placeholder {
-            color: #64748b;
-        }
-        .form-control:focus, .form-select:focus {
-            background-color: #071326;
-            color: #ffffff;
-            border-color: #3b82f6;
-            box-shadow: none;
-        }
+        /* Mengubah Warna Teks & Garis Bawah Tab Aktif jadi Navy */
+        .nav-tabs .nav-link.active { color: #0b1d3a; border-bottom: 3px solid #0b1d3a; background: transparent; }
     </style>
+</head>
 <body>
 
-    <!-- NAVBAR ATAS -->
-    <nav class="navbar navbar-dark mb-4 px-4">
-        <span class="navbar-brand mb-0 h1"><i class="fa-solid fa-shield-halved me-2"></i> Manajemen Kredensial</span>
-        <div class="text-white">
-            <span class="me-3"><i class="fa-solid fa-user me-1"></i> {{ session.get('username') }} (<strong>{{ session.get('role') }}</strong>)</span>
-            <a href="{{ url_for('logout') if 'logout' in endpoints else '/logout' }}" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-right-from-bracket"></i> Keluar</a>
-        </div>
-    </nav>
+    <!-- NAVBAR ATAS -->
+    <nav class="navbar navbar-dark mb-4 px-4">
+        <span class="navbar-brand mb-0 h1"><i class="fa-solid fa-shield-halved me-2"></i> Manajemen Kredensial</span>
+        <div class="text-white">
+            <span class="me-3"><i class="fa-solid fa-user me-1"></i> {{ session.get('username') }} (<strong>{{ session.get('role') }}</strong>)</span>
+            <a href="{{ url_for('logout') if 'logout' in endpoints else '/logout' }}" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-right-from-bracket"></i> Keluar</a>
+        </div>
+    </nav>
 
-    <div class="container pb-5">
+    <div class="container pb-5">
 
-        <!-- NOTIFIKASI PESAN -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
+        <!-- NOTIFIKASI PESAN -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
 
-        <!-- MENU NAVIGASI TAB -->
-        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
-            <li class="nav-item">
-                <button class="nav-link active" id="kredensial-tab" data-bs-toggle="tab" data-bs-target="#kredensial" type="button">
-                    <i class="fa-solid fa-key me-2"></i> Daftar Kredensial Sistem
-                </button>
-            </li>
+        <!-- MENU NAVIGASI TAB -->
+        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="kredensial-tab" data-bs-toggle="tab" data-bs-target="#kredensial" type="button">
+                    <i class="fa-solid fa-key me-2"></i> Daftar Kredensial Sistem
+                </button>
+            </li>
 
-            {% if session.get('role')|lower == 'admin' %}
-            <li class="nav-item">
-                <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button">
-                    <i class="fa-solid fa-users-gear me-2"></i> Kelola Pengguna (Akses Login)
-                </button>
-            </li>
-            {% endif %}
-        </ul>
+            {% if session.get('role')|lower == 'admin' %}
+            <li class="nav-item">
+                <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button">
+                    <i class="fa-solid fa-users-gear me-2"></i> Kelola Pengguna (Akses Login)
+                </button>
+            </li>
+            {% endif %}
+        </ul>
 
-        <!-- ISI KONTEN MENURUT TAB -->
-        <div class="tab-content" id="myTabContent">
-            
-            <!-- ===== ISI TAB 1: DAFTAR KREDENSIAL ===== -->
-            <div class="tab-pane fade show active" id="kredensial">
-                
-                <!-- FORM TAMBAH KREDENSIAL (KHUSUS ADMIN) -->
-                {% if session.get('role')|lower == 'admin' %}
-                <div class="card p-4 mb-4">
-                    <h5 class="card-title text-primary"><i class="fa-solid fa-plus me-2"></i> Tambah Kredensial Sistem Baru</h5>
-                    <!-- Form disesuaikan agar mencari route otomatis atau fallback -->
-                    <form action="/add_credential" method="POST" class="row g-3 mt-1 align-items-center">
-                        <div class="col-md-4">
-                            <input type="text" name="service_name" class="form-control" placeholder="Nama Sistem (misal: ROMANTIK BPS)" required>
-                        </div>
-                        <div class="col-md-3">
-                            <input type="text" name="username" class="form-control" placeholder="Username / Email" required>
-                        </div>
-                        <div class="col-md-3">
-                            <input type="password" name="password" class="form-control" placeholder="Password Sistem" required>
-                        </div>
-                        <!-- Ukuran Tombol Diperbesar jadi col-md-2 agar TIDAK TERPOTONG -->
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary w-100 text-nowrap">Simpan Data</button>
-                        </div>
-                    </form>
-                </div>
-                {% endif %}
+        <!-- ISI KONTEN MENURUT TAB -->
+        <div class="tab-content" id="myTabContent">
+            
+            <!-- ===== ISI TAB 1: DAFTAR KREDENSIAL ===== -->
+            <div class="tab-pane fade show active" id="kredensial">
+                
+                <!-- FORM TAMBAH KREDENSIAL (KHUSUS ADMIN) -->
+                {% if session.get('role')|lower == 'admin' %}
+                <div class="card p-4 mb-4">
+                    <h5 class="card-title text-primary"><i class="fa-solid fa-plus me-2"></i> Tambah Kredensial Sistem Baru</h5>
+                    <!-- Form disesuaikan agar mencari route otomatis atau fallback -->
+                    <form action="/add_credential" method="POST" class="row g-3 mt-1 align-items-center">
+                        <div class="col-md-4">
+                            <input type="text" name="service_name" class="form-control" placeholder="Nama Sistem (misal: ROMANTIK BPS)" required>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" name="username" class="form-control" placeholder="Username / Email" required>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="password" name="password" class="form-control" placeholder="Password Sistem" required>
+                        </div>
+                        <!-- Ukuran Tombol Diperbesar jadi col-md-2 agar TIDAK TERPOTONG -->
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100 text-nowrap">Simpan Data</button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
 
-                <!-- TABEL KREDENSIAL -->
-                {% set list_data = credentials or data or data_kredensial or rows %}
-                <div class="card p-3">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Nama Sistem</th>
-                                    <th>Username</th>
-                                    <th>Password (Terenkripsi)</th>
-                                    <th class="text-center">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for row in list_data %}
-                                <tr>
-                                    <td class="fw-bold">{{ row[1] }}</td>
-                                    <td>{{ row[2] }}</td>
-                                    <td><span id="pass-field-{{ row[0] }}">••••••••••••</span></td>
-                                    <td class="text-center">
-                                        <button onclick="togglePassword({{ row[0] }})" class="btn btn-sm btn-outline-secondary">
-                                            <i class="fa-solid fa-eye me-1"></i> Lihat Password
-                                        </button>
-                                        {% if session.get('role')|lower == 'admin' %}
-                                        <a href="/delete_credential/{{ row[0] }}" class="btn btn-sm btn-outline-danger ms-1" onclick="return confirm('Hapus kredensial ini?')">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </a>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr><td colspan="4" class="text-center text-muted py-4">Belum ada data kredensial. Silakan isi form di atas.</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+                <!-- TABEL KREDENSIAL -->
+                {% set list_data = credentials or data or data_kredensial or rows %}
+                <div class="card p-3">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Nama Sistem</th>
+                                    <th>Username</th>
+                                    <th>Password (Terenkripsi)</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in list_data %}
+                                <tr>
+                                    <td class="fw-bold">{{ row[1] }}</td>
+                                    <td>{{ row[2] }}</td>
+                                    <td><span id="pass-field-{{ row[0] }}">••••••••••••</span></td>
+                                    <td class="text-center">
+                                        <button onclick="togglePassword({{ row[0] }})" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fa-solid fa-eye me-1"></i> Lihat Password
+                                        </button>
+                                        {% if session.get('role')|lower == 'admin' %}
+                                        <a href="/delete_credential/{{ row[0] }}" class="btn btn-sm btn-outline-danger ms-1" onclick="return confirm('Hapus kredensial ini?')">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="text-center text-muted py-4">Belum ada data kredensial. Silakan isi form di atas.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-            <!-- ===== ISI TAB 2: KELOLA PENGGUNA ===== -->
-            {% if session.get('role')|lower == 'admin' %}
-            <div class="tab-pane fade" id="users">
-                
-                <!-- FORM TAMBAH PENGGUNA BARU -->
-                <div class="card p-4 mb-4">
-                    <h5 class="card-title text-success"><i class="fa-solid fa-user-plus me-2"></i> Tambah Pengguna / Akses User Baru</h5>
-                    <form action="/add_user" method="POST" class="row g-3 mt-1 align-items-center">
-                        <div class="col-md-4">
-                            <input type="text" name="username" class="form-control" placeholder="Masukkan Username Baru" required>
-                        </div>
-                        <div class="col-md-3">
-                            <input type="password" name="password" class="form-control" placeholder="Masukkan Password Baru" required>
-                        </div>
-                        <div class="col-md-3">
-                            <select name="role" class="form-select">
-                                <option value="staf">Staf / PKL</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                        </div>
-                        <!-- Ukuran Tombol Diperbesar jadi col-md-2 agar TIDAK TERPOTONG -->
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-success w-100 text-nowrap">Simpan User</button>
-                        </div>
-                    </form>
-                </div>
+            <!-- ===== ISI TAB 2: KELOLA PENGGUNA ===== -->
+            {% if session.get('role')|lower == 'admin' %}
+            <div class="tab-pane fade" id="users">
+                
+                <!-- FORM TAMBAH PENGGUNA BARU -->
+                <div class="card p-4 mb-4">
+                    <h5 class="card-title text-success"><i class="fa-solid fa-user-plus me-2"></i> Tambah Pengguna / Akses User Baru</h5>
+                    <form action="/add_user" method="POST" class="row g-3 mt-1 align-items-center">
+                        <div class="col-md-4">
+                            <input type="text" name="username" class="form-control" placeholder="Masukkan Username Baru" required>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="password" name="password" class="form-control" placeholder="Masukkan Password Baru" required>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="role" class="form-select">
+                                <option value="staf">Staf / PKL</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <!-- Ukuran Tombol Diperbesar jadi col-md-2 agar TIDAK TERPOTONG -->
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-success w-100 text-nowrap">Simpan User</button>
+                        </div>
+                    </form>
+                </div>
 
-                <!-- TABEL DAFTAR PENGGUNA -->
-                {% set list_users = users or data_user or user_list %}
-                <div class="card p-3">
-                    <h6 class="fw-bold mb-3"><i class="fa-solid fa-users me-2"></i> Daftar Pengguna Terdaftar</h6>
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Username</th>
-                                    <th>Role / Hak Akses</th>
-                                    <th class="text-center">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for user in list_users %}
-                                <tr>
-                                    <td>{{ user[0] }}</td>
-                                    <td class="fw-bold">{{ user[1] }}</td>
-                                    <td>
-                                        <span class="badge {{ 'bg-danger' if user[2]|lower == 'admin' else 'bg-info' }}">
-                                            {{ user[2]|upper }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        {% if user[1] != session.get('username') %}
-                                        <a href="/delete_user/{{ user[0] }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Hapus user ini?')">
-                                            <i class="fa-solid fa-trash"></i> Hapus
-                                        </a>
-                                        {% else %}
-                                        <span class="badge bg-secondary">Akun Anda</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
+                <!-- TABEL DAFTAR PENGGUNA -->
+                {% set list_users = users or data_user or user_list %}
+                <div class="card p-3">
+                    <h6 class="fw-bold mb-3"><i class="fa-solid fa-users me-2"></i> Daftar Pengguna Terdaftar</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Role / Hak Akses</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in list_users %}
+                                <tr>
+                                    <td>{{ user[0] }}</td>
+                                    <td class="fw-bold">{{ user[1] }}</td>
+                                    <td>
+                                        <span class="badge {{ 'bg-danger' if user[2]|lower == 'admin' else 'bg-info' }}">
+                                            {{ user[2]|upper }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if user[1] != session.get('username') %}
+                                        <a href="/delete_user/{{ user[0] }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Hapus user ini?')">
+                                            <i class="fa-solid fa-trash"></i> Hapus
+                                        </a>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Akun Anda</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
-        </div>
-    </div>
+        </div>
+    </div>
 
-    <!-- SCRIPT BOOTSTRAP & AJAX LIHAT PASSWORD -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function togglePassword(id) {
-            const field = document.getElementById(`pass-field-${id}`);
-            if (field.innerText === '••••••••••••') {
-                // Coba ambil password dari API Flask
-                fetch(`/get_password/${id}`)
-                    .then(res => {
-                        if (!res.ok) {
-                            return fetch(`/lihat_password/${id}`);
-                        }
-                        return res;
-                    })
-                    .then(res => res.json())
-                    .then(data => { 
-                        if (data.password) {
-                            field.innerText = data.password; 
-                        } else if (data.decrypted) {
-                            field.innerText = data.decrypted;
-                        } else {
-                            alert('Gagal mengambil password.');
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        alert('Endpoint API lihat password tidak ditemukan di app.py');
-                    });
-            } else {
-                field.innerText = '••••••••••••';
-            }
-        }
-    </script>
+    <!-- SCRIPT BOOTSTRAP & AJAX LIHAT PASSWORD -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function togglePassword(id) {
+            const field = document.getElementById(`pass-field-${id}`);
+            if (field.innerText === '••••••••••••') {
+                // Coba ambil password dari API Flask
+                fetch(`/get_password/${id}`)
+                    .then(res => {
+                        if (!res.ok) {
+                            return fetch(`/lihat_password/${id}`);
+                        }
+                        return res;
+                    })
+                    .then(res => res.json())
+                    .then(data => { 
+                        if (data.password) {
+                            field.innerText = data.password; 
+                        } else if (data.decrypted) {
+                            field.innerText = data.decrypted;
+                        } else {
+                            alert('Gagal mengambil password.');
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Endpoint API lihat password tidak ditemukan di app.py');
+                    });
+            } else {
+                field.innerText = '••••••••••••';
+            }
+        }
+    </script>
 </body>
 </html>
