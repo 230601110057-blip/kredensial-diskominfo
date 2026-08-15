@@ -6,15 +6,67 @@
     <title>Dashboard Kredensial Kominfo</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .navbar { background-color: #1e293b; }
-        .card { border: none; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .nav-tabs .nav-link { color: #64748b; font-weight: 600; border: none; padding: 12px 20px; }
-        .nav-tabs .nav-link.active { color: #2563eb; border-bottom: 3px solid #2563eb; background: transparent; }
-        .table thead { background-color: #1e293b; color: white; }
+<style>
+        /* Latar Belakang Biru Dongker & Font Ringkas */
+        body { 
+            background-color: #0b1d3a; 
+            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            font-size: 14px;
+        }
+        
+        /* Navbar & Header Kartu */
+        .navbar, .table thead { 
+            background-color: #071326 !important; 
+        }
+        
+        /* Kartu Konten */
+        .card { 
+            background-color: #12284c; 
+            color: #ffffff;
+            border: 1px solid #1e3a68; 
+            border-radius: 6px; 
+            box-shadow: none;
+        }
+        
+        /* Tab Navigasi Polos */
+        .nav-tabs {
+            border-bottom: 1px solid #1e3a68;
+        }
+        .nav-tabs .nav-link { 
+            color: #94a3b8; 
+            font-weight: 500; 
+            border: none; 
+            padding: 10px 16px; 
+            font-size: 14px;
+        }
+        .nav-tabs .nav-link.active { 
+            color: #ffffff; 
+            border-bottom: 2px solid #3b82f6; 
+            background: transparent; 
+        }
+
+        /* Ukuran Judul Ringkas */
+        h5, .h5 { font-size: 1.1rem; }
+        h6, .h6 { font-size: 0.95rem; }
+        
+        /* Input & Form */
+        .form-control, .form-select {
+            background-color: #071326;
+            border: 1px solid #1e3a68;
+            color: #ffffff;
+            font-size: 14px;
+        }
+        .form-control::placeholder {
+            color: #64748b;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #071326;
+            color: #ffffff;
+            border-color: #3b82f6;
+            box-shadow: none;
+        }
     </style>
-</head>
 <body>
 
     <!-- NAVBAR ATAS -->
