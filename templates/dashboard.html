@@ -96,14 +96,14 @@
                                 <tr>
                                     <th>Nama Sistem</th>
                                     <th>Username</th>
-                                    <th>Password (Terenkripsi)</th>
+                                    <th>Password</th>
                                     <th class="text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for row in list_data %}
                                 <tr>
-                                    <td class="fw-bold">{{ row[1] }}</td>
+                                    <td class="fw-normal">{{ row[1] }}</td>
                                     <td>{{ row[2] }}</td>
                                     <td><span id="pass-field-{{ row[0] }}">••••••••••••</span></td>
                                     <td class="text-center">
@@ -170,7 +170,7 @@
                                 {% for user in list_users %}
                                 <tr>
                                     <td>{{ user[0] }}</td>
-                                    <td class="fw-bold">{{ user[1] }}</td>
+                                    <td>{{ user[1] }}</td>
                                     <td>
                                         <span class="badge {{ 'border border-dark text-dark' if user[2]|lower == 'admin' else 'border border-secondary text-secondary' }}">
                                             {{ user[2]|upper }}
